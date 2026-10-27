@@ -18,7 +18,6 @@ import seedu.address.commons.exceptions.DataLoadingException;
 import seedu.address.commons.exceptions.IllegalValueException;
 import seedu.address.commons.util.JsonUtil;
 import seedu.address.model.ReadOnlyAddressBook;
-import seedu.address.model.person.ServiceNote;
 
 /**
  * A class to access AddressBook data stored as a JSON file on the hard disk.
@@ -56,28 +55,23 @@ public class JsonAddressBookStorage {
     public Optional<ReadOnlyAddressBook> readAddressBook(Path filePath) throws DataLoadingException {
         requireNonNull(filePath);
 
-        // Jackson supplies NullNode for an absent creator property as well as an explicit JSON null.
-        // Inspect field presence before adapting clients so only the absent form is accepted.
+        // Preserve field presence in the tree for validation before adapting it once.
         Optional<JsonNode> rawAddressBook = JsonUtil.readJsonFile(filePath, JsonNode.class);
-        if (rawAddressBook.isPresent()) {
-            for (JsonNode person : rawAddressBook.get().path("persons")) {
-                if (person.has("serviceNote") && !person.get("serviceNote").isTextual()) {
-                    throw new DataLoadingException(new IllegalValueException(ServiceNote.MESSAGE_CONSTRAINTS));
-                }
-            }
-        }
-
-        Optional<JsonSerializableAddressBook> jsonAddressBook = JsonUtil.readJsonFile(
-                filePath, JsonSerializableAddressBook.class);
-        if (!jsonAddressBook.isPresent()) {
+        if (rawAddressBook.isEmpty()) {
             return Optional.empty();
         }
-
         try {
-            return Optional.of(jsonAddressBook.get().toModelType());
+            for (JsonNode person : rawAddressBook.get().path("persons")) {
+                JsonAdaptedPerson.validateServiceNoteField(person);
+            }
+            JsonSerializableAddressBook adapted = JsonUtil.fromJsonNode(rawAddressBook.get(),
+                    JsonSerializableAddressBook.class);
+            return Optional.of(adapted.toModelType());
         } catch (IllegalValueException ive) {
             logger.info("Illegal values found in " + filePath + ": " + ive.getMessage());
             throw new DataLoadingException(ive);
+        } catch (IOException ioe) {
+            throw new DataLoadingException(ioe);
         }
     }
 

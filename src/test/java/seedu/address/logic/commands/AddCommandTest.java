@@ -121,6 +121,12 @@ public class AddCommandTest {
         }
 
         @Override
+        public java.util.Optional<Person> findPersonByReference(
+                seedu.address.model.person.ClientReference reference) {
+            throw new AssertionError("This method should not be called.");
+        }
+
+        @Override
         public boolean hasPerson(Person person) {
             throw new AssertionError("This method should not be called.");
         }

@@ -1,7 +1,6 @@
 package seedu.address.logic.commands;
 
 import static java.util.Objects.requireNonNull;
-import static seedu.address.model.Model.PREDICATE_SHOW_ALL_PERSONS;
 
 import java.util.Objects;
 
@@ -34,20 +33,14 @@ public class NoteCommand extends Command {
     @Override
     public CommandResult execute(Model model) throws CommandException {
         requireNonNull(model);
-        Person client = model.getAddressBook().getPersonList().stream()
-                .filter(person -> reference.equals(person.getClientReference()))
-                .findFirst()
-                .orElseThrow(() -> new CommandException("No client found with reference " + reference + "."));
+        Person client = ClientLookup.requireClient(model, reference);
         if (note == null && client.getServiceNote() == null) {
             throw new CommandException("Client " + reference + " has no service note to clear.");
         }
 
         String action = note == null ? "Cleared" : client.getServiceNote() == null ? "Added" : "Updated";
-        Person updated = new Person(reference, client.getName(), client.getPhone(), client.getEmail(),
-                client.getAddress(), client.getCardDetails(), client.getCreditScore(), client.getDebt(),
-                client.getTags(), note);
+        Person updated = client.withServiceNote(note);
         model.setPerson(client, updated);
-        model.updateFilteredPersonList(PREDICATE_SHOW_ALL_PERSONS);
         return new CommandResult(action + " service note for " + reference + " " + client.getName() + ".",
                 reference);
     }

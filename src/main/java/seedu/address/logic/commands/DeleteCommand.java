@@ -8,7 +8,6 @@ import java.util.Objects;
 import seedu.address.commons.core.index.Index;
 import seedu.address.commons.util.ToStringBuilder;
 import seedu.address.logic.Messages;
-import seedu.address.logic.commands.exceptions.ClientReferenceNotFoundException;
 import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.model.Model;
 import seedu.address.model.person.ClientReference;
@@ -78,12 +77,7 @@ public class DeleteCommand extends Command {
     }
 
     private Person getPersonByReference(Model model) throws CommandException {
-        return model.getAddressBook()
-                .getPersonList()
-                .stream()
-                .filter(person -> targetReference.equals(person.getClientReference()))
-                .findFirst()
-                .orElseThrow(() -> new ClientReferenceNotFoundException(targetReference));
+        return ClientLookup.requireClient(model, targetReference);
     }
 
     @Override
@@ -104,6 +98,11 @@ public class DeleteCommand extends Command {
 
         return Objects.equals(targetIndex, otherDeleteCommand.targetIndex)
                 && Objects.equals(targetReference, otherDeleteCommand.targetReference);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(targetIndex, targetReference);
     }
 
     @Override

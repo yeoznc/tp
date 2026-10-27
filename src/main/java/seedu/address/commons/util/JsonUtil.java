@@ -13,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
@@ -92,6 +93,11 @@ public class JsonUtil {
      */
     public static <T> T fromJsonString(String json, Class<T> instanceClass) throws IOException {
         return objectMapper.readValue(json, instanceClass);
+    }
+
+    /** Converts an already parsed JSON tree without reading the source file again. */
+    public static <T> T fromJsonNode(JsonNode node, Class<T> instanceClass) throws IOException {
+        return objectMapper.treeToValue(node, instanceClass);
     }
 
     /**

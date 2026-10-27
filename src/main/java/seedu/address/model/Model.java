@@ -1,9 +1,11 @@
 package seedu.address.model;
 
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javafx.collections.ObservableList;
 import seedu.address.commons.core.GuiSettings;
+import seedu.address.model.person.ClientReference;
 import seedu.address.model.person.Person;
 
 /**
@@ -35,6 +37,9 @@ public interface Model {
 
     /** Returns the AddressBook */
     ReadOnlyAddressBook getAddressBook();
+
+    /** Finds a referenced client, if present. */
+    Optional<Person> findPersonByReference(ClientReference reference);
 
     /**
      * Returns true if a person with the same identity as {@code person} exists in the address book.

@@ -60,18 +60,37 @@ public class AddressBookParser {
             case EditCommand.COMMAND_WORD -> new EditCommandParser().parse(arguments);
             case DeleteCommand.COMMAND_WORD -> new DeleteCommandParser().parse(arguments);
             case RemoveCardCommand.COMMAND_WORD -> new RemoveCardCommandParser().parse(arguments);
-            case ClearCommand.COMMAND_WORD -> new ClearCommand();
+            case ClearCommand.COMMAND_WORD -> {
+                requireNoArguments(arguments, ClearCommand.COMMAND_WORD);
+                yield new ClearCommand();
+            }
             case FindCommand.COMMAND_WORD -> new FindCommandParser().parse(arguments);
-            case ListCommand.COMMAND_WORD -> new ListCommand();
+            case ListCommand.COMMAND_WORD -> {
+                requireNoArguments(arguments, ListCommand.COMMAND_WORD);
+                yield new ListCommand();
+            }
             case SortCommand.COMMAND_WORD -> new SortCommandParser().parse(arguments);
             case NoteCommand.COMMAND_WORD -> new NoteCommandParser().parse(arguments);
-            case ExitCommand.COMMAND_WORD -> new ExitCommand();
-            case HelpCommand.COMMAND_WORD -> new HelpCommand();
+            case ExitCommand.COMMAND_WORD -> {
+                requireNoArguments(arguments, ExitCommand.COMMAND_WORD);
+                yield new ExitCommand();
+            }
+            case HelpCommand.COMMAND_WORD -> {
+                requireNoArguments(arguments, HelpCommand.COMMAND_WORD);
+                yield new HelpCommand();
+            }
             default -> {
                 logger.finer("This user input caused a ParseException: " + userInput);
                 throw new ParseException(MESSAGE_UNKNOWN_COMMAND);
             }
         };
+    }
+
+    /** Rejects unexpected arguments for a command that takes none. */
+    private static void requireNoArguments(String arguments, String commandWord) throws ParseException {
+        if (!arguments.isBlank()) {
+            throw new ParseException("The " + commandWord + " command does not accept arguments.");
+        }
     }
 
 }

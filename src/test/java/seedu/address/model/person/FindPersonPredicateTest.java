@@ -59,7 +59,8 @@ public class FindPersonPredicateTest {
     public void test_cardNumber_requiresFullExactMatch() {
         Person person = new PersonBuilder().withCardDetails("0012  3456", "123", "12/28", "Visa").build();
         assertTrue(new FindPersonPredicate(List.of(), List.of(), "0012  3456").test(person));
-        for (String number : List.of("3456", "12  3456", "0012 3456", "00123456", "99999999")) {
+        assertTrue(new FindPersonPredicate(List.of(), List.of(), "0012 3456").test(person));
+        for (String number : List.of("3456", "12  3456", "00123456", "99999999")) {
             assertFalse(new FindPersonPredicate(List.of(), List.of(), number).test(person));
         }
     }

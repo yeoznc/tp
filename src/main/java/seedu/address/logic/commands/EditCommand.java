@@ -6,7 +6,6 @@ import static seedu.address.logic.parser.CliSyntax.PREFIX_EMAIL;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_NAME;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_PHONE;
 import static seedu.address.logic.parser.CliSyntax.PREFIX_TAG;
-import static seedu.address.model.Model.PREDICATE_SHOW_ALL_PERSONS;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -84,7 +83,6 @@ public class EditCommand extends Command {
         }
 
         model.setPerson(personToEdit, editedPerson);
-        model.updateFilteredPersonList(PREDICATE_SHOW_ALL_PERSONS);
         return new CommandResult(String.format(MESSAGE_EDIT_PERSON_SUCCESS, Messages.format(editedPerson)));
     }
 
@@ -101,17 +99,7 @@ public class EditCommand extends Command {
         Address updatedAddress = editPersonDescriptor.getAddress().orElse(personToEdit.getAddress());
         Set<Tag> updatedTags = editPersonDescriptor.getTags().orElse(personToEdit.getTags());
 
-        if (personToEdit.getClientReference() != null) {
-            return new Person(personToEdit.getClientReference(), updatedName, updatedPhone, updatedEmail,
-                    updatedAddress, personToEdit.getCardDetails(), personToEdit.getCreditScore(),
-                    personToEdit.getDebt(), updatedTags, personToEdit.getServiceNote());
-        }
-        if (personToEdit.getCardDetails() == null) {
-            return new Person(updatedName, updatedPhone, updatedEmail, updatedAddress, updatedTags,
-                    personToEdit.getServiceNote());
-        }
-        return new Person(updatedName, updatedPhone, updatedEmail, updatedAddress, personToEdit.getCardDetails(),
-                personToEdit.getCreditScore(), personToEdit.getDebt(), updatedTags, personToEdit.getServiceNote());
+        return personToEdit.withContactDetails(updatedName, updatedPhone, updatedEmail, updatedAddress, updatedTags);
     }
 
     @Override
@@ -132,6 +120,11 @@ public class EditCommand extends Command {
 
         return index.equals(otherEditCommand.index)
                 && editPersonDescriptor.equals(otherEditCommand.editPersonDescriptor);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(index, editPersonDescriptor);
     }
 
     @Override
@@ -239,6 +232,11 @@ public class EditCommand extends Command {
                     && Objects.equals(email, otherEditPersonDescriptor.email)
                     && Objects.equals(address, otherEditPersonDescriptor.address)
                     && Objects.equals(tags, otherEditPersonDescriptor.tags);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(name, phone, email, address, tags);
         }
 
         @Override

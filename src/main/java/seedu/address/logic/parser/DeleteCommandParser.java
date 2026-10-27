@@ -35,14 +35,12 @@ public class DeleteCommandParser implements Parser<DeleteCommand> {
     }
 
     private DeleteCommand parseReferenceDelete(String args) throws ParseException {
-        if (!args.matches("r/\\S+")) {
+        String referenceValue = args.substring(CliSyntax.PREFIX_REFERENCE.getPrefix().length()).trim();
+        if (!referenceValue.matches("\\S+")) {
             throw new ParseException(
                     String.format(MESSAGE_INVALID_COMMAND_FORMAT,
                             DeleteCommand.MESSAGE_USAGE));
         }
-
-        String referenceValue = args.substring(
-                CliSyntax.PREFIX_REFERENCE.getPrefix().length());
 
         return new DeleteCommand(ParserUtil.parseClientReference(referenceValue));
     }

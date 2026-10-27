@@ -17,6 +17,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import seedu.address.commons.core.GuiSettings;
+import seedu.address.model.person.ClientReference;
 import seedu.address.model.person.NameContainsKeywordsPredicate;
 import seedu.address.testutil.AddressBookBuilder;
 import seedu.address.testutil.PersonBuilder;
@@ -33,6 +34,15 @@ public class ModelManagerTest {
         assertEquals(new UserPrefs(), modelManager.getUserPrefs());
         assertEquals(new GuiSettings(), modelManager.getGuiSettings());
         assertEquals(new AddressBook(), new AddressBook(modelManager.getAddressBook()));
+    }
+
+    @Test
+    public void findPersonByReference_matchesNormalizedReference() {
+        var client = new PersonBuilder(ALICE).withClientReference("C0001").build();
+        modelManager.addPerson(client);
+        assertEquals(client.getClientReference(), modelManager.findPersonByReference(
+                new ClientReference("c0001")).orElseThrow().getClientReference());
+        assertTrue(modelManager.findPersonByReference(new ClientReference("C9999")).isEmpty());
     }
 
     @Test

@@ -108,6 +108,19 @@ public class MainAppTest {
     }
 
     @Test
+    public void load_nullPerson_startsProtectedWithoutChangingFile() throws Exception {
+        Path dataPath = testFolder.resolve("nullPerson.json");
+        String malformed = "{\"persons\":[null]}";
+        Files.writeString(dataPath, malformed);
+
+        MainApp.InitialData initialData = load(dataPath);
+
+        assertEquals(LogicManager.LOAD_FAILURE_MESSAGE, initialData.message());
+        assertTrue(initialData.protectedMode());
+        assertEquals(malformed, Files.readString(dataPath));
+    }
+
+    @Test
     public void load_unreadablePath_startsProtectedWithoutChangingPath() throws Exception {
         Path dataPath = testFolder.resolve("directory.json");
         Files.createDirectory(dataPath);

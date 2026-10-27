@@ -43,5 +43,9 @@ class PersonListPanelTest {
 
         assertEquals(0, PersonListPanel.indexToSelect(List.of(bob), result, alice));
         assertEquals(-1, PersonListPanel.indexToSelect(List.of(), result, alice));
+        assertEquals(0, PersonListPanel.indexToSelect(List.of(bob),
+                CommandResult.selectPerson("Added", alice), bob));
+        assertEquals(-1, PersonListPanel.indexToSelect(List.of(),
+                new CommandResult("Note updated", alice.getClientReference()), bob));
     }
 }

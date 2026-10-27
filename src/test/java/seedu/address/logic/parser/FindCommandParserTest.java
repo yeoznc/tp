@@ -57,7 +57,8 @@ public class FindCommandParserTest {
     @Test
     public void parse_cardNumber_preservesFullValue() {
         for (String card : List.of("0012345678901234", "4111  1111 1111 1111", "4111-1111-1111-1111")) {
-            FindCommand expected = new FindCommand(new FindPersonPredicate(List.of(), List.of(), card));
+            FindCommand expected = new FindCommand(new FindPersonPredicate(List.of(), List.of(),
+                    card.replaceAll("\\s+", " ")));
             assertParseSuccess(parser, "cn/" + card, expected);
             assertParseSuccess(parser, " \t cn/ " + card + " \n ", expected);
         }
@@ -116,13 +117,13 @@ public class FindCommandParserTest {
 
     @Test
     public void parse_unsupportedPrefix_throwsParseException() {
-        String expectedMessage = String.format(MESSAGE_INVALID_COMMAND_FORMAT, FindCommand.MESSAGE_USAGE);
-        assertParseFailure(parser, "e/alice@example.com", expectedMessage);
-        assertParseFailure(parser, "n/Alice t/friends", expectedMessage);
-        assertParseFailure(parser, "p/91234567 e/alice@example.com", expectedMessage);
-        assertParseFailure(parser, "n/Alice p/91234567 t/friends", expectedMessage);
-        assertParseFailure(parser, "cn/4111111111111111 cvv/123", expectedMessage);
-        assertParseFailure(parser, "cn/4111111111111111\te/alice@example.com", expectedMessage);
+        assertParseFailure(parser, "e/alice@example.com", "Unknown parameter prefix: e/.");
+        assertParseFailure(parser, "n/Alice t/friends", "Unknown parameter prefix: t/.");
+        assertParseFailure(parser, "p/91234567 e/alice@example.com", "Unknown parameter prefix: e/.");
+        assertParseFailure(parser, "n/Alice p/91234567 t/friends", "Unknown parameter prefix: t/.");
+        assertParseFailure(parser, "cn/4111111111111111 cvv/123", "Unknown parameter prefix: cvv/.");
+        assertParseFailure(parser, "cn/4111111111111111\te/alice@example.com",
+                "Unknown parameter prefix: e/.");
     }
 
     @Test

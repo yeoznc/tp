@@ -4,8 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static seedu.address.testutil.Assert.assertThrows;
 
 import org.junit.jupiter.api.Test;
+
+import seedu.address.logic.parser.exceptions.ParseException;
 
 public class ArgumentTokenizerTest {
 
@@ -77,6 +80,20 @@ public class ArgumentTokenizerTest {
         assertPreambleEmpty(argMultimap);
         assertArgumentPresent(argMultimap, pSlash, "Argument value");
 
+    }
+
+    @Test
+    public void tokenize_repeatedWhitespace_isCollapsedInValuesAndSeparators() {
+        ArgumentMultimap arguments = ArgumentTokenizer.tokenize("\tn/ Mary  Jane\n a/ Main\t\tStreet  ",
+                new Prefix("n/"), new Prefix("a/"));
+        assertArgumentPresent(arguments, new Prefix("n/"), "Mary Jane");
+        assertArgumentPresent(arguments, new Prefix("a/"), "Main Street");
+    }
+
+    @Test
+    public void tokenizeStrict_unknownPrefixInValue_isRejected() {
+        assertThrows(ParseException.class, "Unknown parameter prefix: x/.", () ->
+                ArgumentTokenizer.tokenizeStrict("a/Main Street x/foo", new Prefix("a/")));
     }
 
     @Test

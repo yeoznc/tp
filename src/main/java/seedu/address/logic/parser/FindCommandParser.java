@@ -24,9 +24,7 @@ public class FindCommandParser implements Parser<FindCommand> {
      * @throws ParseException if the user input does not conform to the expected format
      */
     public FindCommand parse(String args) throws ParseException {
-        // Normalize whitespace before prefixes while preserving whitespace within stored card numbers.
-        String normalizedArgs = " " + args.replaceAll("\\s+(?=(?:n|p|cn)/)", " ");
-        ArgumentMultimap argMultimap = ArgumentTokenizer.tokenize(normalizedArgs,
+        ArgumentMultimap argMultimap = ArgumentTokenizer.tokenizeStrict(args,
                 PREFIX_NAME, PREFIX_PHONE, PREFIX_CARD_NUMBER);
         if (!argMultimap.getPreamble().isEmpty()) {
             throw new ParseException(

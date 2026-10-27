@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import seedu.address.commons.util.StringUtil;
 import seedu.address.commons.util.ToStringBuilder;
 
 /**
@@ -41,7 +42,8 @@ public class FindPersonPredicate implements Predicate<Person> {
         return (nameKeywords.isEmpty() || namePredicate.test(person))
                 && (phoneNumbers.isEmpty() || phoneNumbers.contains(person.getPhone()))
                 && (cardNumber == null || person.getCardDetails() != null
-                        && cardNumber.equals(person.getCardDetails().getCardNumber()));
+                        && StringUtil.normalizeWhitespace(cardNumber).equals(
+                                StringUtil.normalizeWhitespace(person.getCardDetails().getCardNumber())));
     }
 
     @Override
@@ -54,6 +56,11 @@ public class FindPersonPredicate implements Predicate<Person> {
         }
         return nameKeywords.equals(otherPredicate.nameKeywords) && phoneNumbers.equals(otherPredicate.phoneNumbers)
                 && Objects.equals(cardNumber, otherPredicate.cardNumber);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(nameKeywords, phoneNumbers, cardNumber);
     }
 
     @Override

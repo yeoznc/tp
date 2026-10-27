@@ -1,9 +1,16 @@
 package seedu.address.logic.parser;
 
+import static seedu.address.commons.util.StringUtil.normalizeWhitespace;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import seedu.address.logic.parser.exceptions.ParseException;
 
 /**
  * Tokenizes arguments string of the form: {@code preamble <prefix>value <prefix>value ...}<br>
@@ -14,6 +21,20 @@ import java.util.stream.Collectors;
  *    in the above example.<br>
  */
 public class ArgumentTokenizer {
+    private static final Pattern PREFIX_LIKE_TOKEN = Pattern.compile("(?<!\\S)([A-Za-z][A-Za-z0-9]*/)");
+
+    /** Tokenizes command arguments and rejects prefixes not allowed by the command. */
+    public static ArgumentMultimap tokenizeStrict(String argsString, Prefix... prefixes) throws ParseException {
+        String normalized = normalizeWhitespace(argsString);
+        Set<String> allowedPrefixes = Arrays.stream(prefixes).map(Prefix::getPrefix).collect(Collectors.toSet());
+        Matcher matcher = PREFIX_LIKE_TOKEN.matcher(normalized);
+        while (matcher.find()) {
+            if (!allowedPrefixes.contains(matcher.group(1))) {
+                throw new ParseException("Unknown parameter prefix: " + matcher.group(1) + ".");
+            }
+        }
+        return tokenize(normalized, prefixes);
+    }
 
     /**
      * Tokenizes an arguments string and returns an {@code ArgumentMultimap} object that maps prefixes to their
@@ -24,8 +45,9 @@ public class ArgumentTokenizer {
      * @return           ArgumentMultimap object that maps prefixes to their arguments
      */
     public static ArgumentMultimap tokenize(String argsString, Prefix... prefixes) {
-        List<PrefixPosition> positions = findAllPrefixPositions(argsString, prefixes);
-        return extractArguments(argsString, positions);
+        String normalized = " " + normalizeWhitespace(argsString);
+        List<PrefixPosition> positions = findAllPrefixPositions(normalized, prefixes);
+        return extractArguments(normalized, positions);
     }
 
     /**

@@ -18,6 +18,5 @@ public class CliSyntax {
     public static final Prefix PREFIX_CREDIT_SCORE = new Prefix("cs/");
     public static final Prefix PREFIX_DEBT = new Prefix("d/");
     public static final Prefix PREFIX_TAG = new Prefix("t/");
-    public static final Prefix PREFIX_SERVICE_NOTE = new Prefix("s/");
 
 }

@@ -2,14 +2,12 @@ package seedu.address.ui;
 
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.logging.Logger;
 
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.layout.Region;
-import seedu.address.commons.core.LogsCenter;
 import seedu.address.logic.commands.CommandResult;
 import seedu.address.model.person.ClientReference;
 import seedu.address.model.person.Person;
@@ -19,14 +17,15 @@ import seedu.address.model.person.Person;
  */
 public class PersonListPanel extends UiPart<Region> {
     private static final String FXML = "PersonListPanel.fxml";
-    private final Logger logger = LogsCenter.getLogger(PersonListPanel.class);
 
     @FXML
     private ListView<Person> personListView;
     private Consumer<Person> selectionHandler = unused -> { };
 
     /**
-     * Creates a {@code PersonListPanel} with the given {@code ObservableList}.
+     * Creates a panel that displays the given list of clients and reports selection changes.
+     *
+     * @param personList the clients to display
      */
     public PersonListPanel(ObservableList<Person> personList) {
         super(FXML);
@@ -36,11 +35,16 @@ public class PersonListPanel extends UiPart<Region> {
                 selectionHandler.accept(newPerson));
     }
 
+    /**
+     * Sets the handler notified when the selected client changes.
+     *
+     * @param selectionHandler the handler that receives the selected client, or {@code null} when none is selected
+     */
     public void setSelectionHandler(Consumer<Person> selectionHandler) {
         this.selectionHandler = selectionHandler;
     }
 
-    /** Selects the first visible client, or clears the details panel when the list is empty. */
+    /** Selects the first displayed client, or clears the selection and notifies the handler when the list is empty. */
     void selectFirst() {
         if (personListView.getItems().isEmpty()) {
             personListView.getSelectionModel().clearSelection();
@@ -51,12 +55,18 @@ public class PersonListPanel extends UiPart<Region> {
         }
     }
 
-    /** Returns the client selected before a command changes the displayed list. */
+    /** Returns the currently selected client, or {@code null} when no client is selected. */
     public Person getSelectedPerson() {
         return personListView.getSelectionModel().getSelectedItem();
     }
 
-    /** Applies a command's selection request after its list changes have completed. */
+    /**
+     * Applies a command's selection request after the displayed list changes, then notifies the selection handler.
+     * Selects the first client if the requested or previously selected client is absent.
+     *
+     * @param result the command result containing the selection request
+     * @param previouslySelected the client selected before the displayed list changed
+     */
     public void applySelection(CommandResult result, Person previouslySelected) {
         ObservableList<Person> displayed = personListView.getItems();
         int index = indexToSelect(displayed, result, previouslySelected);
@@ -71,7 +81,10 @@ public class PersonListPanel extends UiPart<Region> {
         selectionHandler.accept(selected);
     }
 
-    /** Finds the requested client in the current display order, falling back to its first row. */
+    /**
+     * Finds the requested client, or the previously selected client, in display order.
+     * Returns the first row if no client matches, or {@code -1} if the list is empty.
+     */
     static int indexToSelect(List<Person> displayed, CommandResult result, Person previouslySelected) {
         Person desired = result.getSelectionRequest() == CommandResult.SelectionRequest.SELECT_PERSON
                 ? result.getPersonToSelect() : previouslySelected;

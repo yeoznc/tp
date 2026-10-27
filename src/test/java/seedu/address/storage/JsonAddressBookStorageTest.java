@@ -66,6 +66,27 @@ public class JsonAddressBookStorageTest {
     }
 
     @Test
+    public void readAddressBook_nullPerson_throwsDataLoadingException() throws Exception {
+        Path filePath = testFolder.resolve("nullPerson.json");
+        Files.writeString(filePath, "{\"persons\":[null]}");
+
+        assertThrows(DataLoadingException.class, () -> new JsonAddressBookStorage(filePath).readAddressBook());
+    }
+
+    @Test
+    public void readAddressBook_nullTag_throwsDataLoadingException() throws Exception {
+        Path filePath = testFolder.resolve("nullTag.json");
+        AddressBook book = new AddressBook();
+        book.addPerson(new PersonBuilder().withTags("friend").build());
+        JsonAddressBookStorage storage = new JsonAddressBookStorage(filePath);
+        storage.saveAddressBook(book);
+        String withNullTag = Files.readString(filePath).replaceFirst("\"tags\"\\s*:\\s*\\[", "\"tags\": [null,");
+        Files.writeString(filePath, withNullTag);
+
+        assertThrows(DataLoadingException.class, storage::readAddressBook);
+    }
+
+    @Test
     public void readAndSaveAddressBook_allInOrder_success() throws Exception {
         Path filePath = testFolder.resolve("TempAddressBook.json");
         AddressBook original = getTypicalAddressBook();
@@ -120,6 +141,26 @@ public class JsonAddressBookStorageTest {
         storage.saveAddressBook(original);
 
         assertEquals(original, storage.readAddressBook().orElseThrow());
+    }
+
+    @Test
+    public void readAddressBook_serviceNotePresence_distinguishesMissingFromNull() throws Exception {
+        Path filePath = testFolder.resolve("notes.json");
+        Person base = new PersonBuilder().withClientReference("C0001").build();
+        AddressBook book = new AddressBook();
+        book.addPerson(base);
+        JsonAddressBookStorage storage = new JsonAddressBookStorage(filePath);
+        storage.saveAddressBook(book);
+        String json = Files.readString(filePath);
+        assertEquals(book, storage.readAddressBook().orElseThrow());
+
+        String withNull = json.replaceFirst("\"name\"\\s*:", "\"serviceNote\": null, \"name\":");
+        Files.writeString(filePath, withNull);
+        assertThrows(DataLoadingException.class, storage::readAddressBook);
+
+        Files.writeString(filePath, json.replaceFirst("\"name\"\\s*:",
+                "\"serviceNote\": 12, \"name\":"));
+        assertThrows(DataLoadingException.class, storage::readAddressBook);
     }
 
     @Test

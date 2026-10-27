@@ -105,11 +105,11 @@ public class NoteCommandIntegrationTest {
     }
 
     @Test
-    public void execute_hiddenClient_revealsItAndRequestsSelection() throws Exception {
+    public void execute_hiddenClient_preservesFilterAndRequestsSelection() throws Exception {
         logic.execute("find n/Nobody");
         var result = logic.execute("note r/C0001 s/Hello");
         assertEquals("C0001", result.getSelectedClientReference().orElseThrow().value);
-        assertEquals(1, logic.getFilteredPersonList().size());
+        assertEquals(0, logic.getFilteredPersonList().size());
     }
 
     @Test
@@ -117,10 +117,10 @@ public class NoteCommandIntegrationTest {
         logic.execute("note r/C0001 s/Original");
         String originalJson = Files.readString(dataPath);
 
-        assertThrows(CommandException.class, "No client found with reference C9999.", () ->
+        assertThrows(CommandException.class, "No person found with client reference: C9999", () ->
                 logic.execute("note r/C9999 s/Other"));
         assertThrows(ParseException.class,
-                ServiceNote.MESSAGE_CONSTRAINTS, () -> logic.execute("note r/C0001 s/First\nSecond"));
+                ServiceNote.MESSAGE_CONSTRAINTS, () -> logic.execute("note r/C0001 s/" + "a".repeat(201)));
         assertEquals("Original", loadedNote().value);
         assertEquals(originalJson, Files.readString(dataPath));
     }

@@ -161,6 +161,25 @@ public class UniquePersonListTest {
     }
 
     @Test
+    public void setPersons_referencesAndLegacyNames_followIdentityRules() {
+        Person referenced = new PersonBuilder(ALICE).withClientReference("c0001").build();
+        Person sameNameOtherReference = new PersonBuilder(ALICE).withClientReference("C0002").build();
+        Person sameNameLegacy = new Person(ALICE.getName(), ALICE.getPhone(), ALICE.getEmail(),
+                ALICE.getAddress(), ALICE.getTags());
+        uniquePersonList.setPersons(List.of(referenced, sameNameOtherReference, sameNameLegacy));
+        assertEquals(List.of(referenced, sameNameOtherReference, sameNameLegacy),
+                uniquePersonList.asUnmodifiableObservableList());
+
+        Person duplicateReference = new PersonBuilder(BOB).withClientReference("C0001").build();
+        assertThrows(DuplicatePersonException.class, () ->
+                uniquePersonList.setPersons(List.of(referenced, duplicateReference)));
+        Person duplicateLegacyName = new Person(ALICE.getName(), BOB.getPhone(), BOB.getEmail(),
+                BOB.getAddress(), BOB.getTags());
+        assertThrows(DuplicatePersonException.class, () ->
+                uniquePersonList.setPersons(List.of(sameNameLegacy, duplicateLegacyName)));
+    }
+
+    @Test
     public void asUnmodifiableObservableList_modifyList_throwsUnsupportedOperationException() {
         assertThrows(UnsupportedOperationException.class, ()
             -> uniquePersonList.asUnmodifiableObservableList().remove(0));

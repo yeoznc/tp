@@ -14,6 +14,7 @@ public class RemoveCardCommandParserTest {
     @Test
     public void parse_validReference_normalizesToUppercase() {
         assertParseSuccess(parser, "  r/c0001  ", new RemoveCardCommand(new ClientReference("C0001")));
+        assertParseSuccess(parser, "  r/  c0001  ", new RemoveCardCommand(new ClientReference("C0001")));
     }
 
     @Test
@@ -29,9 +30,9 @@ public class RemoveCardCommandParserTest {
 
     @Test
     public void parse_extraTextOrUnknownPrefix_reportsInvalidCommand() {
-        assertParseFailure(parser, "r/C0001 h/abcde", RemoveCardCommandParser.MESSAGE_INVALID_COMMAND);
+        assertParseFailure(parser, "r/C0001 h/abcde", "Unknown parameter prefix: h/.");
         assertParseFailure(parser, "extra r/C0001", RemoveCardCommandParser.MESSAGE_INVALID_COMMAND);
-        assertParseFailure(parser, "h/abcde", RemoveCardCommandParser.MESSAGE_INVALID_COMMAND);
+        assertParseFailure(parser, "h/abcde", "Unknown parameter prefix: h/.");
     }
 
     @Test

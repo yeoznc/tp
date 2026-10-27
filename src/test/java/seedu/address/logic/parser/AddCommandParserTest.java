@@ -44,7 +44,7 @@ public class AddCommandParserTest {
     @Test
     public void parse_reorderedFields_normalizesReferenceAndNameSpacing() {
         Person expected = new PersonBuilder().withClientReference("SG-1024").withName("Mary O'Connor")
-                .withPhone("91234567").withEmail("Mary.oconnor@example.com").withAddress("10  Main Street").build();
+                .withPhone("91234567").withEmail("Mary.oconnor@example.com").withAddress("10 Main Street").build();
         assertParseSuccess(parser, "  n/  Mary   O'Connor  e/ Mary.oconnor@example.com "
                 + "r/ sg-1024  a/ 10  Main Street  p/91234567  " + FINANCIAL_ARGUMENTS, new AddCommand(expected));
     }
@@ -80,15 +80,13 @@ public class AddCommandParserTest {
     }
 
     @Test
-    public void parse_unknownPrefix_remainsPartOfValue() {
+    public void parse_unknownPrefix_isRejected() {
         for (String prefix : List.of("x/", "R/", "future/")) {
             assertParseFailure(parser, VALID_ARGUMENTS + " " + prefix + "value",
-                    Debt.MESSAGE_CONSTRAINTS);
+                    "Unknown parameter prefix: " + prefix + ".");
             String address = "Blk 30 Geylang Street 29, #06-40 " + prefix + "value";
-            Person expected = new PersonBuilder().withClientReference("C0001").withName("Alex Yeoh")
-                    .withPhone("87438807").withEmail("alex@example.com").withAddress(address).build();
-            assertParseSuccess(parser, VALID_ARGUMENTS.replace(FIELDS.get(4), "a/" + address),
-                    new AddCommand(expected));
+            assertParseFailure(parser, VALID_ARGUMENTS.replace(FIELDS.get(4), "a/" + address),
+                    "Unknown parameter prefix: " + prefix + ".");
         }
     }
 
@@ -100,11 +98,14 @@ public class AddCommandParserTest {
     }
 
     @Test
-    public void parse_prefixWithoutPrecedingSpace_reportsInvalidFormat() {
-        String expectedMessage = String.format(MESSAGE_INVALID_COMMAND_FORMAT, AddCommand.MESSAGE_USAGE);
-        assertParseFailure(parser, VALID_ARGUMENTS.stripLeading(), expectedMessage);
-        assertParseFailure(parser, VALID_ARGUMENTS.replace(" n/", "\tn/"), expectedMessage);
-        assertParseFailure(parser, VALID_ARGUMENTS.replace(" n/", "\nn/"), expectedMessage);
+    public void parse_whitespaceAroundPrefixes_isNormalized() {
+        Person expected = new PersonBuilder().withClientReference("C0001").withName("Alex Yeoh")
+                .withPhone("87438807").withEmail("alex@example.com")
+                .withAddress("Blk 30 Geylang Street 29, #06-40").build();
+        for (String args : List.of(VALID_ARGUMENTS.stripLeading(),
+                VALID_ARGUMENTS.replace(" n/", "\tn/"), VALID_ARGUMENTS.replace(" n/", "\nn/"))) {
+            assertParseSuccess(parser, args, new AddCommand(expected));
+        }
     }
 
     @Test
@@ -128,8 +129,10 @@ public class AddCommandParserTest {
         assertParseFailure(parser, VALID_ARGUMENTS.replace("87438807", "123-456"), Phone.MESSAGE_CONSTRAINTS);
         assertParseFailure(parser, VALID_ARGUMENTS.replace("alex@example.com", "alex@example"),
                 Email.MESSAGE_CONSTRAINTS);
-        assertParseFailure(parser, VALID_ARGUMENTS.replace("Blk 30 Geylang Street 29, #06-40", "Main\nStreet"),
-                Address.MESSAGE_CONSTRAINTS);
+        Person normalizedAddress = new PersonBuilder().withClientReference("C0001").withName("Alex Yeoh")
+                .withPhone("87438807").withEmail("alex@example.com").withAddress("Main Street").build();
+        assertParseSuccess(parser, VALID_ARGUMENTS.replace("Blk 30 Geylang Street 29, #06-40", "Main\nStreet"),
+                new AddCommand(normalizedAddress));
     }
 
     @Test

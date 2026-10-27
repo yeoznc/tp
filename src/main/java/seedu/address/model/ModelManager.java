@@ -5,6 +5,7 @@ import static seedu.address.commons.util.CollectionUtil.requireAllNonNull;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.logging.Logger;
@@ -14,20 +15,14 @@ import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
 import seedu.address.commons.core.GuiSettings;
 import seedu.address.commons.core.LogsCenter;
+import seedu.address.model.person.ClientReference;
 import seedu.address.model.person.Person;
 
 /**
  * Represents the in-memory model of the address book data.
  */
-public class ModelManager implements Model {
+public class ModelManager implements StagedModel {
     private static final Logger logger = LogsCenter.getLogger(ModelManager.class);
-
-    /** The kind of timestamp change made by a data-changing command. */
-    public enum TimestampAction { ADD, EDIT }
-
-    /** Timestamp values to log once the staged change has been saved. */
-    public record TimestampChange(TimestampAction action, String reference,
-            Instant createdAt, Instant lastModifiedAt) { }
 
     private final AddressBook addressBook;
     private final UserPrefs userPrefs;
@@ -92,6 +87,14 @@ public class ModelManager implements Model {
     }
 
     @Override
+    public Optional<Person> findPersonByReference(ClientReference reference) {
+        requireNonNull(reference);
+        return addressBook.getPersonList().stream()
+                .filter(person -> reference.equals(person.getClientReference()))
+                .findFirst();
+    }
+
+    @Override
     public boolean hasPerson(Person person) {
         requireNonNull(person);
         return addressBook.hasPerson(person);
@@ -109,7 +112,6 @@ public class ModelManager implements Model {
         Person stamped = person.withTimestamps(now, now);
         addressBook.addPerson(stamped);
         timestampChange = new TimestampChange(TimestampAction.ADD, referenceOf(stamped), now, now);
-        updateFilteredPersonList(PREDICATE_SHOW_ALL_PERSONS);
     }
 
     @Override
@@ -180,6 +182,11 @@ public class ModelManager implements Model {
                 && userPrefs.equals(otherModelManager.userPrefs)
                 && filteredPersons.equals(otherModelManager.filteredPersons)
                 && sortOrder == otherModelManager.sortOrder;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(addressBook, userPrefs, filteredPersons, sortOrder);
     }
 
 }

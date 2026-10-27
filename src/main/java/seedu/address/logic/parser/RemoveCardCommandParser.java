@@ -1,5 +1,7 @@
 package seedu.address.logic.parser;
 
+import static seedu.address.logic.parser.CliSyntax.PREFIX_REFERENCE;
+
 import seedu.address.logic.commands.RemoveCardCommand;
 import seedu.address.logic.parser.exceptions.ParseException;
 
@@ -12,26 +14,17 @@ public class RemoveCardCommandParser implements Parser<RemoveCardCommand> {
 
     @Override
     public RemoveCardCommand parse(String args) throws ParseException {
-        String trimmed = args.trim();
-        if (trimmed.isEmpty() || trimmed.equals(CliSyntax.PREFIX_REFERENCE.getPrefix())) {
-            throw new ParseException(MESSAGE_MISSING_REFERENCE);
-        }
-
-        String[] parameters = trimmed.split("\\s+");
-        int referenceCount = 0;
-        for (String parameter : parameters) {
-            if (parameter.startsWith(CliSyntax.PREFIX_REFERENCE.getPrefix())) {
-                referenceCount++;
-            }
-        }
-        if (referenceCount > 1) {
+        ArgumentMultimap arguments = ArgumentTokenizer.tokenizeStrict(args, PREFIX_REFERENCE);
+        if (arguments.getAllValues(PREFIX_REFERENCE).size() > 1) {
             throw new ParseException(MESSAGE_REPEATED_PARAMETER);
         }
-        if (parameters.length != 1 || !parameters[0].startsWith(CliSyntax.PREFIX_REFERENCE.getPrefix())) {
+        String referenceValue = arguments.getValue(PREFIX_REFERENCE).orElse("");
+        if (referenceValue.isEmpty()) {
+            throw new ParseException(MESSAGE_MISSING_REFERENCE);
+        }
+        if (!arguments.getPreamble().isEmpty() || referenceValue.contains(" ")) {
             throw new ParseException(MESSAGE_INVALID_COMMAND);
         }
-
-        String referenceValue = parameters[0].substring(CliSyntax.PREFIX_REFERENCE.getPrefix().length());
         return new RemoveCardCommand(ParserUtil.parseClientReference(referenceValue));
     }
 }

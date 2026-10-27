@@ -34,6 +34,7 @@ class JsonAdaptedPerson {
 
     public static final String MISSING_FIELD_MESSAGE_FORMAT = "Person's %s field is missing!";
     public static final String INVALID_TIMESTAMP_MESSAGE = "Timestamp information is invalid for this profile.";
+    public static final String MESSAGE_NULL_TAG = "Tags list contains a null tag.";
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private final String clientReference;
@@ -124,46 +125,69 @@ class JsonAdaptedPerson {
                 .collect(Collectors.toList()));
     }
 
+    /** Validates a field whose absence and explicit JSON null have different meanings. */
+    static void validateServiceNoteField(JsonNode person) throws IllegalValueException {
+        if (person.has("serviceNote") && !person.get("serviceNote").isTextual()) {
+            throw new IllegalValueException(ServiceNote.MESSAGE_CONSTRAINTS);
+        }
+    }
+
     /**
      * Converts this Jackson-friendly adapted person object into the model's {@code Person} object.
      *
      * @throws IllegalValueException if there were any data constraints violated in the adapted person.
      */
     public Person toModelType() throws IllegalValueException {
-        final ServiceNote modelNote;
-        // Jackson also supplies NullNode when an optional creator property is absent.
-        // JsonAddressBookStorage rejects explicit JSON null before reaching this adapter.
-        if (serviceNote == null || serviceNote.isNull()) {
-            modelNote = null;
-        } else if (!serviceNote.isTextual()
-                || !ServiceNote.isValidServiceNote(serviceNote.textValue())) {
-            throw new IllegalValueException(ServiceNote.MESSAGE_CONSTRAINTS);
-        } else {
-            modelNote = new ServiceNote(serviceNote.textValue());
-        }
-        final Instant modelCreatedAt = parseTimestamp(createdAt);
-        final Instant modelLastModifiedAt = parseTimestamp(lastModifiedAt);
-        final ClientReference modelReference;
-        if (clientReference == null) {
-            modelReference = null;
-        } else if (!ClientReference.isValidClientReference(clientReference)) {
-            throw new IllegalValueException(ClientReference.MESSAGE_CONSTRAINTS);
-        } else {
-            modelReference = new ClientReference(clientReference);
-        }
+        ServiceNote modelNote = toServiceNote();
+        Instant modelCreatedAt = parseTimestamp(createdAt);
+        Instant modelLastModifiedAt = parseTimestamp(lastModifiedAt);
+        ClientReference modelReference = toClientReference();
+        Set<Tag> modelTags = toTags();
+        ContactFields contact = toContactFields();
+        return toPerson(modelReference, contact, modelTags, modelNote, modelCreatedAt, modelLastModifiedAt);
+    }
 
-        final List<Tag> personTags = new ArrayList<>();
+    private ServiceNote toServiceNote() throws IllegalValueException {
+        // Jackson also supplies NullNode when an optional creator property is absent.
+        // validateServiceNoteField rejects explicit JSON null before this conversion.
+        if (serviceNote == null || serviceNote.isNull()) {
+            return null;
+        }
+        if (!serviceNote.isTextual() || !ServiceNote.isValidServiceNote(serviceNote.textValue())) {
+            throw new IllegalValueException(ServiceNote.MESSAGE_CONSTRAINTS);
+        }
+        return new ServiceNote(serviceNote.textValue());
+    }
+
+    private ClientReference toClientReference() throws IllegalValueException {
+        if (clientReference == null) {
+            return null;
+        }
+        if (!ClientReference.isValidClientReference(clientReference)) {
+            throw new IllegalValueException(ClientReference.MESSAGE_CONSTRAINTS);
+        }
+        return new ClientReference(clientReference);
+    }
+
+    private Set<Tag> toTags() throws IllegalValueException {
+        Set<Tag> personTags = new HashSet<>();
         for (JsonAdaptedTag tag : tags) {
+            if (tag == null) {
+                throw new IllegalValueException(MESSAGE_NULL_TAG);
+            }
             personTags.add(tag.toModelType());
         }
+        return personTags;
+    }
 
+    private ContactFields toContactFields() throws IllegalValueException {
         if (name == null) {
             throw new IllegalValueException(String.format(MISSING_FIELD_MESSAGE_FORMAT, Name.class.getSimpleName()));
         }
         if (!Name.isValidName(name)) {
             throw new IllegalValueException(Name.MESSAGE_CONSTRAINTS);
         }
-        final Name modelName = new Name(name);
+        Name modelName = new Name(name);
 
         if (phone == null) {
             throw new IllegalValueException(String.format(MISSING_FIELD_MESSAGE_FORMAT, Phone.class.getSimpleName()));
@@ -171,7 +195,7 @@ class JsonAdaptedPerson {
         if (!Phone.isValidPhone(phone)) {
             throw new IllegalValueException(Phone.MESSAGE_CONSTRAINTS);
         }
-        final Phone modelPhone = new Phone(phone);
+        Phone modelPhone = new Phone(phone);
 
         if (email == null) {
             throw new IllegalValueException(String.format(MISSING_FIELD_MESSAGE_FORMAT, Email.class.getSimpleName()));
@@ -179,7 +203,7 @@ class JsonAdaptedPerson {
         if (!Email.isValidEmail(email)) {
             throw new IllegalValueException(Email.MESSAGE_CONSTRAINTS);
         }
-        final Email modelEmail = new Email(email);
+        Email modelEmail = new Email(email);
 
         if (address == null) {
             throw new IllegalValueException(String.format(MISSING_FIELD_MESSAGE_FORMAT, Address.class.getSimpleName()));
@@ -187,13 +211,17 @@ class JsonAdaptedPerson {
         if (!Address.isValidAddress(address)) {
             throw new IllegalValueException(Address.MESSAGE_CONSTRAINTS);
         }
-        final Address modelAddress = new Address(address);
+        Address modelAddress = new Address(address);
+        return new ContactFields(modelName, modelPhone, modelEmail, modelAddress);
+    }
 
-        final Set<Tag> modelTags = new HashSet<>(personTags);
+    private Person toPerson(ClientReference modelReference, ContactFields contact, Set<Tag> modelTags,
+            ServiceNote modelNote, Instant modelCreatedAt, Instant modelLastModifiedAt) throws IllegalValueException {
         // Files saved before card and financial details were introduced remain valid.
         if (cardDetails == null && creditScore == null && debt == null) {
             if (modelReference == null) {
-                return new Person(modelName, modelPhone, modelEmail, modelAddress, modelTags, modelNote)
+                return new Person(contact.name(), contact.phone(), contact.email(), contact.address(),
+                        modelTags, modelNote)
                         .withTimestamps(modelCreatedAt, modelLastModifiedAt);
             }
             throw new IllegalValueException(String.format(MISSING_FIELD_MESSAGE_FORMAT,
@@ -212,18 +240,21 @@ class JsonAdaptedPerson {
         }
         try {
             if (modelReference != null) {
-                return new Person(modelReference, modelName, modelPhone, modelEmail, modelAddress,
+                return new Person(modelReference, contact.name(), contact.phone(), contact.email(), contact.address(),
                         cardDetails == null ? null : cardDetails.toModelType(),
                         new CreditScore(creditScore), new Debt(debt), modelTags, modelNote)
                         .withTimestamps(modelCreatedAt, modelLastModifiedAt);
             }
-            return new Person(modelName, modelPhone, modelEmail, modelAddress, cardDetails.toModelType(),
+            return new Person(contact.name(), contact.phone(), contact.email(), contact.address(),
+                    cardDetails.toModelType(),
                     new CreditScore(creditScore), new Debt(debt), modelTags, modelNote)
                     .withTimestamps(modelCreatedAt, modelLastModifiedAt);
         } catch (IllegalArgumentException e) {
             throw new IllegalValueException(e.getMessage());
         }
     }
+
+    private record ContactFields(Name name, Phone phone, Email email, Address address) { }
 
     private static Instant parseTimestamp(String value) throws IllegalValueException {
         if (value == null) {

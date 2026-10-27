@@ -15,7 +15,6 @@ public class RemoveCardCommand extends Command {
     public static final String COMMAND_WORD = "removecard";
     public static final String MESSAGE_USAGE = "Format: removecard r/REFERENCE";
     public static final String MESSAGE_SUCCESS = "Removed card ending in %1$s from client %2$s";
-    public static final String MESSAGE_CLIENT_NOT_FOUND = "No client found with reference %1$s.";
     public static final String MESSAGE_CARD_NOT_FOUND = "Client %1$s is not associated with a card.";
 
     private final ClientReference reference;
@@ -27,19 +26,14 @@ public class RemoveCardCommand extends Command {
     @Override
     public CommandResult execute(Model model) throws CommandException {
         requireNonNull(model);
-        Person client = model.getAddressBook().getPersonList().stream()
-                .filter(person -> reference.equals(person.getClientReference()))
-                .findFirst()
-                .orElseThrow(() -> new CommandException(String.format(MESSAGE_CLIENT_NOT_FOUND, reference)));
+        Person client = ClientLookup.requireClient(model, reference);
         if (client.getCardDetails() == null) {
             throw new CommandException(String.format(MESSAGE_CARD_NOT_FOUND, reference));
         }
 
         String cardNumber = client.getCardDetails().getCardNumber();
         String cardEnding = cardNumber.substring(Math.max(0, cardNumber.length() - 4));
-        Person updatedClient = new Person(client.getClientReference(), client.getName(), client.getPhone(),
-                client.getEmail(), client.getAddress(), null, client.getCreditScore(), client.getDebt(),
-                client.getTags());
+        Person updatedClient = client.withoutCardDetails();
         model.setPerson(client, updatedClient);
         return new CommandResult(String.format(MESSAGE_SUCCESS, cardEnding, reference));
     }

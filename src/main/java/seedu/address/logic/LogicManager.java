@@ -3,6 +3,7 @@ package seedu.address.logic;
 import static java.util.Objects.requireNonNull;
 
 import java.time.Clock;
+import java.util.function.BiFunction;
 import java.util.logging.Logger;
 
 import javafx.collections.ObservableList;
@@ -15,7 +16,8 @@ import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.logic.parser.AddressBookParser;
 import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.Model;
-import seedu.address.model.ModelManager;
+import seedu.address.model.ModelStaging;
+import seedu.address.model.StagedModel;
 import seedu.address.model.person.Person;
 import seedu.address.storage.Storage;
 
@@ -41,6 +43,7 @@ public class LogicManager implements Logic {
     private final String startupMessage;
     private final boolean protectedMode;
     private final Clock clock;
+    private final BiFunction<Model, Clock, StagedModel> stagedModelFactory;
 
     /**
      * Constructs a {@code LogicManager} with the given {@code Model} and {@code Storage}.
@@ -56,12 +59,19 @@ public class LogicManager implements Logic {
 
     /** Creates logic with a clock shared by each staged model. */
     LogicManager(Model model, Storage storage, String startupMessage, boolean protectedMode, Clock clock) {
+        this(model, storage, startupMessage, protectedMode, clock, ModelStaging::snapshot);
+    }
+
+    /** Creates logic with an injectable staging factory. */
+    public LogicManager(Model model, Storage storage, String startupMessage, boolean protectedMode, Clock clock,
+            BiFunction<Model, Clock, StagedModel> stagedModelFactory) {
         this.model = model;
         this.addressBookSync = new AddressBookSync(storage);
         addressBookParser = new AddressBookParser();
         this.startupMessage = startupMessage;
         this.protectedMode = protectedMode;
         this.clock = requireNonNull(clock);
+        this.stagedModelFactory = requireNonNull(stagedModelFactory);
     }
 
     @Override
@@ -74,7 +84,7 @@ public class LogicManager implements Logic {
                 throw new CommandException(command instanceof NoteCommand
                         ? NOTE_LOAD_FAILURE_MESSAGE : LOAD_FAILURE_MESSAGE);
             }
-            ModelManager stagedModel = new ModelManager(model.getAddressBook(), model.getUserPrefs(), clock);
+            StagedModel stagedModel = requireNonNull(stagedModelFactory.apply(model, clock));
             stagedModel.updateFilteredPersonList(model.getFilteredPersonListPredicate());
             stagedModel.setSortOrder(model.getSortOrder());
             CommandResult result = command.execute(stagedModel);

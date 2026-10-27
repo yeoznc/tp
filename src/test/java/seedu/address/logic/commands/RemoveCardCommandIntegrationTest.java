@@ -22,6 +22,7 @@ import seedu.address.model.Model;
 import seedu.address.model.ModelManager;
 import seedu.address.model.ReadOnlyAddressBook;
 import seedu.address.model.person.Person;
+import seedu.address.model.person.ServiceNote;
 import seedu.address.storage.JsonAddressBookStorage;
 import seedu.address.storage.JsonUserPrefsStorage;
 import seedu.address.storage.StorageManager;
@@ -48,6 +49,7 @@ public class RemoveCardCommandIntegrationTest {
     @Test
     public void execute_existingCard_removesCardAndPreservesOtherFieldsAcrossReload() throws Exception {
         logic.execute(ADD_CLIENT);
+        logic.execute("note r/C0001 s/Follow up");
         Person before = model.getAddressBook().getPersonList().getFirst();
         logic.execute("find n/Alex");
 
@@ -64,9 +66,12 @@ public class RemoveCardCommandIntegrationTest {
         assertEquals(before.getCreditScore(), after.getCreditScore());
         assertEquals(before.getDebt(), after.getDebt());
         assertEquals(before.getTags(), after.getTags());
+        assertEquals(new ServiceNote("Follow up"), after.getServiceNote());
         assertNull(after.getCardDetails());
         assertFalse(Files.readString(dataPath).contains("\"cardDetails\""));
         assertEquals(model.getAddressBook(), new JsonAddressBookStorage(dataPath).readAddressBook().orElseThrow());
+        assertEquals(new ServiceNote("Follow up"), new JsonAddressBookStorage(dataPath).readAddressBook()
+                .orElseThrow().getPersonList().getFirst().getServiceNote());
 
         logic.execute("edit 1 p/91234567");
         assertNull(new JsonAddressBookStorage(dataPath).readAddressBook().orElseThrow()
@@ -78,7 +83,7 @@ public class RemoveCardCommandIntegrationTest {
         logic.execute(ADD_CLIENT);
         String originalJson = Files.readString(dataPath);
         ReadOnlyAddressBook originalModel = new AddressBook(model.getAddressBook());
-        assertThrows(CommandException.class, "No client found with reference C9999.", () ->
+        assertThrows(CommandException.class, "No person found with client reference: C9999", () ->
                 logic.execute("removecard r/C9999"));
         assertEquals(originalModel, model.getAddressBook());
         assertEquals(originalJson, Files.readString(dataPath));

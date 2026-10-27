@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -32,6 +33,7 @@ import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.AddressBook;
 import seedu.address.model.Model;
 import seedu.address.model.ModelManager;
+import seedu.address.model.ModelStaging;
 import seedu.address.model.ReadOnlyAddressBook;
 import seedu.address.model.UserPrefs;
 import seedu.address.storage.JsonAddressBookStorage;
@@ -58,6 +60,25 @@ public class LogicManagerTest {
         JsonUserPrefsStorage userPrefsStorage = new JsonUserPrefsStorage(temporaryFolder.resolve("userPrefs.json"));
         StorageManager storage = new StorageManager(addressBookStorage, userPrefsStorage);
         logic = new LogicManager(model, storage);
+    }
+
+    @Test
+    public void execute_dataChangingCommand_usesInjectedStagingFactory() throws Exception {
+        AtomicInteger snapshots = new AtomicInteger();
+        StorageManager storage = new StorageManager(
+                new JsonAddressBookStorage(temporaryFolder.resolve("staged.json")),
+                new JsonUserPrefsStorage(temporaryFolder.resolve("prefs.json")));
+        logic = new LogicManager(model, storage, "", false, Clock.systemUTC(), (source, clock) -> {
+            snapshots.incrementAndGet();
+            return ModelStaging.snapshot(source, clock);
+        });
+
+        logic.execute("list");
+        assertEquals(0, snapshots.get());
+        logic.execute("clear");
+        assertEquals(1, snapshots.get());
+        assertEquals(model.getAddressBook(), new JsonAddressBookStorage(temporaryFolder.resolve("staged.json"))
+                .readAddressBook().orElseThrow());
     }
 
     @Test
@@ -203,6 +224,31 @@ public class LogicManagerTest {
         assertEquals(1, logic.getFilteredPersonList().size());
         assertEquals("C0002", logic.getFilteredPersonList().getFirst().getClientReference().value);
         assertEquals(savedJson, Files.readString(dataPath));
+    }
+
+    @Test
+    public void execute_dataChanges_preserveActiveFilter() throws Exception {
+        String alex = "add r/C0001 n/Alex Yeoh p/87438807 e/alex@example.com a/10 Main Street"
+                + " cn/4111111111111111 cvv/123 exp/12/28 provider/Visa cs/700 d/1250.50";
+        logic.execute(alex);
+        logic.execute(alex.replace("C0001", "C0002").replace("Alex Yeoh", "Bernice Yu"));
+        logic.execute("find n/Alex");
+
+        logic.execute(alex.replace("C0001", "C0003").replace("Alex Yeoh", "Carl Tan"));
+        assertEquals(1, logic.getFilteredPersonList().size());
+        assertEquals("C0001", logic.getFilteredPersonList().getFirst().getClientReference().value);
+
+        logic.execute("note r/C0002 s/Follow up");
+        logic.execute("removecard r/C0002");
+        assertEquals(1, logic.getFilteredPersonList().size());
+
+        logic.execute("edit 1 n/Alexandra Yeoh");
+        assertEquals(1, logic.getFilteredPersonList().size());
+        logic.execute("delete r/C0001");
+        assertTrue(logic.getFilteredPersonList().isEmpty());
+
+        logic.execute("list");
+        assertEquals(2, logic.getFilteredPersonList().size());
     }
 
     @Test
