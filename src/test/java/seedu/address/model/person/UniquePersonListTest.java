@@ -9,7 +9,9 @@ import static seedu.address.testutil.Assert.assertThrows;
 import static seedu.address.testutil.TypicalPersons.ALICE;
 import static seedu.address.testutil.TypicalPersons.BOB;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.StreamSupport;
 
 import org.junit.jupiter.api.Test;
 
@@ -183,4 +185,49 @@ public class UniquePersonListTest {
     public void toStringMethod() {
         assertEquals(uniquePersonList.asUnmodifiableObservableList().toString(), uniquePersonList.toString());
     }
+    @Test
+    public void add_sameReferenceDifferentDetails_rejectsWithoutMutation() {
+        Person first = new PersonBuilder(ALICE).withClientReference("C0001").build();
+        Person changed = new PersonBuilder(first).withName("Changed Name").build();
+        uniquePersonList.add(first);
+        assertThrows(DuplicatePersonException.class, () -> uniquePersonList.add(changed));
+        assertEquals(List.of(first), uniquePersonList.asUnmodifiableObservableList());
+    }
+
+    @Test
+    public void setPersons_rejectedReplacement_preservesExistingContents() {
+        uniquePersonList.add(ALICE);
+        assertThrows(DuplicatePersonException.class, () -> uniquePersonList.setPersons(List.of(BOB, BOB)));
+        assertEquals(List.of(ALICE), uniquePersonList.asUnmodifiableObservableList());
+        assertThrows(NullPointerException.class, ()
+                    -> uniquePersonList.setPersons(Arrays.asList(BOB, null)));
+        assertEquals(List.of(ALICE), uniquePersonList.asUnmodifiableObservableList());
+    }
+
+    @Test
+    public void remove_sameIdentityDifferentValue_doesNotRemoveStoredPerson() {
+        uniquePersonList.add(ALICE);
+        Person changed = new PersonBuilder(ALICE).withAddress("Changed Address").build();
+        assertTrue(uniquePersonList.contains(changed));
+        assertThrows(PersonNotFoundException.class, () -> uniquePersonList.remove(changed));
+        assertEquals(List.of(ALICE), uniquePersonList.asUnmodifiableObservableList());
+    }
+
+    @Test
+    public void equalsAndHashCode_compareOrderedContents() {
+        UniquePersonList copy = new UniquePersonList();
+        assertEquals(uniquePersonList, copy);
+        assertEquals(uniquePersonList.hashCode(), copy.hashCode());
+        uniquePersonList.setPersons(List.of(ALICE, BOB));
+        copy.setPersons(List.of(ALICE, BOB));
+        assertEquals(uniquePersonList, copy);
+        assertEquals(uniquePersonList.hashCode(), copy.hashCode());
+        copy.setPersons(List.of(BOB, ALICE));
+        assertFalse(uniquePersonList.equals(copy));
+        assertFalse(uniquePersonList.equals(null));
+        assertFalse(uniquePersonList.equals(List.of(ALICE, BOB)));
+        assertEquals(List.of(ALICE, BOB),
+                StreamSupport.stream(uniquePersonList.spliterator(), false).toList());
+    }
+
 }

@@ -7,6 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
 import static seedu.address.testutil.TypicalPersons.ALICE;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -18,9 +21,11 @@ import seedu.address.commons.core.GuiSettings;
 import seedu.address.logic.commands.exceptions.CommandException;
 import seedu.address.model.AddressBook;
 import seedu.address.model.Model;
+import seedu.address.model.ModelManager;
 import seedu.address.model.ReadOnlyAddressBook;
 import seedu.address.model.ReadOnlyUserPrefs;
 import seedu.address.model.SortOrder;
+import seedu.address.model.UserPrefs;
 import seedu.address.model.person.Person;
 import seedu.address.testutil.PersonBuilder;
 
@@ -199,6 +204,46 @@ public class AddCommandTest {
         public ReadOnlyAddressBook getAddressBook() {
             return new AddressBook();
         }
+    }
+
+    @Test
+    public void execute_clashes_requireConfirmationBeforeAdding() throws Exception {
+        Person existing = new PersonBuilder().withClientReference("C0001").build();
+        Person proposed = new PersonBuilder(existing).withClientReference("C0002").build();
+        AddressBook book = new AddressBook();
+        book.addPerson(existing);
+        Instant now = Instant.parse("2026-01-01T00:00:00Z");
+        Model model = new ModelManager(book, new UserPrefs(), Clock.fixed(now, ZoneOffset.UTC));
+        CommandResult warning = new AddCommand(proposed).execute(model);
+        assertTrue(warning.requiresClashConfirmation());
+        assertEquals(model.findClientClashes(proposed, null), warning.getClientClashes());
+        assertEquals(List.of(existing), model.getAddressBook().getPersonList());
+        CommandResult success = new AddCommand(proposed, true).execute(model);
+        assertFalse(success.requiresClashConfirmation());
+        assertEquals(List.of(existing, proposed.withTimestamps(now, now)), model.getAddressBook().getPersonList());
+    }
+
+    @Test
+    public void execute_confirmedDuplicate_stillFailsWithoutMutation() {
+        Person existing = new PersonBuilder().withClientReference("C0001").build();
+        Person changed = new PersonBuilder(existing).withName("Changed Name").build();
+        AddressBook book = new AddressBook();
+        book.addPerson(existing);
+        Model model = new ModelManager(book, new UserPrefs());
+        assertThrows(CommandException.class,
+                String.format(AddCommand.MESSAGE_DUPLICATE_PERSON, existing.getClientReference().orElseThrow()), ()
+                    -> new AddCommand(changed, true).execute(model));
+        assertEquals(List.of(existing), model.getAddressBook().getPersonList());
+    }
+
+    @Test
+    public void equals_confirmationState_distinguishesCommands() {
+        Person person = new PersonBuilder().withClientReference("C0001").build();
+        AddCommand confirmed = new AddCommand(person, true);
+        AddCommand copy = new AddCommand(person, true);
+        assertEquals(confirmed, copy);
+        assertEquals(confirmed.hashCode(), copy.hashCode());
+        assertFalse(confirmed.equals(new AddCommand(person, false)));
     }
 
 }

@@ -105,4 +105,12 @@ public class CollectionUtilTest {
     private void assertNullPointerExceptionNotThrown(Collection<?> collection) {
         requireAllNonNull(collection);
     }
+    @Test
+    public void isAnyNonNull_nullPositionsAndNestedCollection() {
+        assertFalse(CollectionUtil.isAnyNonNull(null, null, null));
+        assertTrue(CollectionUtil.isAnyNonNull(null, new Object(), null));
+        assertTrue(CollectionUtil.isAnyNonNull(null, null, new Object()));
+        assertTrue(CollectionUtil.isAnyNonNull((Object) new Object[] {null}));
+    }
+
 }

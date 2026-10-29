@@ -147,4 +147,23 @@ public class ArgumentTokenizerTest {
         assertNotEquals(aaa, new Prefix("aab"));
     }
 
+    @Test
+    public void tokenize_prefixAtStartVersusAfterWhitespace() {
+        ArgumentMultimap atStart = ArgumentTokenizer.tokenize("p/123", pSlash);
+        assertPreamblePresent(atStart, "p/123");
+        assertArgumentAbsent(atStart, pSlash);
+        for (String whitespace : new String[] {" ", "\t", "\n", "\r\n"}) {
+            ArgumentMultimap result = ArgumentTokenizer.tokenize(whitespace + "p/123", pSlash);
+            assertPreambleEmpty(result);
+            assertArgumentPresent(result, pSlash, "123");
+        }
+    }
+
+    @Test
+    public void tokenize_embeddedOccurrenceBeforeRealPrefix_keepsEmbeddedText() {
+        ArgumentMultimap result = ArgumentTokenizer.tokenize(" xp/one p/two p/", pSlash);
+        assertPreamblePresent(result, "xp/one");
+        assertArgumentPresent(result, pSlash, "two", "");
+    }
+
 }

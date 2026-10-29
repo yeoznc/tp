@@ -1,5 +1,6 @@
 package seedu.address.model.person;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
@@ -90,4 +91,25 @@ public class EmailTest {
         // different values -> returns false
         assertFalse(email.equals(new Email("other.valid@email.com")));
     }
+    @Test
+    public void valueContracts_equalCopiesHaveSameHashAndPreserveText() {
+        Email value = new Email("Alice@example.com");
+        Email copy = new Email("Alice@example.com");
+        assertEquals(value, copy);
+        assertEquals(copy, value);
+        assertEquals(value.hashCode(), copy.hashCode());
+        assertEquals("Alice@example.com", value.toString());
+    }
+
+    @Test
+    public void constructor_domainLabelAndWhitespacePartitions() {
+        for (String valid : new String[] {"a@b.co", "a@b.c1o", "a@b-c.co", "a@b.c.co"}) {
+            assertEquals(valid, new Email(valid).value);
+        }
+        for (String invalid : new String[] {"a@b.c", "a@b.c1", "a@b.12", "a@b-.co",
+            "a@b..co", "a\u00a0b@c.co", "a@b.co\n"}) {
+            assertThrows(IllegalArgumentException.class, () -> new Email(invalid));
+        }
+    }
+
 }

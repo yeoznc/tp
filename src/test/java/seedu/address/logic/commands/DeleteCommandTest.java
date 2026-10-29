@@ -12,6 +12,7 @@ import static seedu.address.testutil.TypicalIndexes.INDEX_SECOND_PERSON;
 import static seedu.address.testutil.TypicalPersons.getTypicalAddressBook;
 
 import java.util.HashSet;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
@@ -208,4 +209,19 @@ public class DeleteCommandTest {
 
         assertTrue(model.getFilteredPersonList().isEmpty());
     }
+    @Test
+    public void execute_emptyList_rejectsFirstIndex() {
+        Model empty = new ModelManager(new AddressBook(), new UserPrefs());
+        assertCommandFailure(new DeleteCommand(INDEX_FIRST_PERSON), empty,
+                Messages.MESSAGE_INVALID_PERSON_DISPLAYED_INDEX);
+        assertTrue(empty.getAddressBook().getPersonList().isEmpty());
+    }
+
+    @Test
+    public void execute_lastValidIndex_removesOnlyLastPerson() throws Exception {
+        List<Person> before = List.copyOf(model.getAddressBook().getPersonList());
+        new DeleteCommand(Index.fromOneBased(before.size())).execute(model);
+        assertEquals(before.subList(0, before.size() - 1), model.getAddressBook().getPersonList());
+    }
+
 }

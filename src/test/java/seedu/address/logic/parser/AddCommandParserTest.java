@@ -226,4 +226,20 @@ public class AddCommandParserTest {
     private String prefixOf(String field) {
         return field.substring(0, field.indexOf('/') + 1);
     }
+    @Test
+    public void parse_confirmationFlag_setsConfirmationState() {
+        Person expected = new Person(new ClientReference("C0001"), new Name("Alex Yeoh"),
+                null, null, null, null, null, null, Collections.emptySet());
+        assertParseSuccess(parser, MINIMAL_ARGUMENTS + " --confirm-clash", new AddCommand(expected, true));
+        assertParseSuccess(parser, MINIMAL_ARGUMENTS, new AddCommand(expected, false));
+    }
+
+    @Test
+    public void parse_flagLikeNameSuffix_isNotConfirmation() {
+        Person expected = new Person(new ClientReference("C0001"), new Name("Alex Yeoh --confirm-clashExtra"),
+                null, null, null, null, null, null, Collections.emptySet());
+        assertParseSuccess(parser, MINIMAL_ARGUMENTS + " --confirm-clashExtra", new AddCommand(expected, false));
+        assertParseFailure(parser, MINIMAL_ARGUMENTS + " /confirm", Name.MESSAGE_CONSTRAINTS);
+    }
+
 }

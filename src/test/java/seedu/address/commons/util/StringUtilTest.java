@@ -63,4 +63,24 @@ public class StringUtilTest {
         assertThrows(NullPointerException.class, () -> StringUtil.getDetails(null));
     }
 
+    @Test
+    public void isNonZeroUnsignedInteger_integerBoundaries() {
+        assertTrue(StringUtil.isNonZeroUnsignedInteger("2147483646"));
+        assertTrue(StringUtil.isNonZeroUnsignedInteger("2147483647"));
+        assertFalse(StringUtil.isNonZeroUnsignedInteger("2147483648"));
+        assertFalse(StringUtil.isNonZeroUnsignedInteger("-2147483648"));
+        assertFalse(StringUtil.isNonZeroUnsignedInteger("00"));
+        assertThrows(NullPointerException.class, () -> StringUtil.isNonZeroUnsignedInteger(null));
+    }
+
+    @Test
+    public void getDetails_nestedCauseAndMissingMessage_preservesDiagnosticInformation() {
+        RuntimeException cause = new RuntimeException("root cause");
+        String details = StringUtil.getDetails(new IllegalArgumentException("outer", cause));
+        assertTrue(details.startsWith("outer\n"));
+        assertTrue(details.contains("Caused by: java.lang.RuntimeException: root cause"));
+        assertTrue(details.contains("getDetails_nestedCauseAndMissingMessage"));
+        assertTrue(StringUtil.getDetails(new RuntimeException()).contains("java.lang.RuntimeException"));
+    }
+
 }

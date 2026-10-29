@@ -1,5 +1,6 @@
 package seedu.address.model.person;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
@@ -60,4 +61,24 @@ public class PhoneTest {
         // different values -> returns false
         assertFalse(phone.equals(new Phone("995")));
     }
+    @Test
+    public void valueContracts_equalCopiesHaveSameHashAndPreserveText() {
+        Phone value = new Phone("00123");
+        Phone copy = new Phone("00123");
+        assertEquals(value, copy);
+        assertEquals(copy, value);
+        assertEquals(value.hashCode(), copy.hashCode());
+        assertEquals("00123", value.toString());
+    }
+
+    @Test
+    public void constructor_digitLengthBoundaries() {
+        for (int length : new int[] {3, 4, 14, 15}) {
+            assertEquals("0".repeat(length), new Phone("0".repeat(length)).value);
+        }
+        for (String invalid : new String[] {"12", "1".repeat(16), "+123", "\uff11\uff12\uff13", "123\n"}) {
+            assertThrows(IllegalArgumentException.class, () -> new Phone(invalid));
+        }
+    }
+
 }

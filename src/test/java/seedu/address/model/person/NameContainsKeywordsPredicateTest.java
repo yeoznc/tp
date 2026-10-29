@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Locale;
 
 import org.junit.jupiter.api.Test;
 
@@ -120,4 +121,25 @@ public class NameContainsKeywordsPredicateTest {
         String expected = NameContainsKeywordsPredicate.class.getCanonicalName() + "{keywords=" + keywords + "}";
         assertEquals(expected, predicate.toString());
     }
+    @Test
+    public void test_turkishDefaultLocale_usesLocaleIndependentCaseMatching() {
+        Locale original = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            Person person = new PersonBuilder().withName("IRIS").build();
+            assertTrue(new NameContainsKeywordsPredicate(List.of("iris")).test(person));
+            assertTrue(new NameContainsKeywordsPredicate(List.of("missing", "ri")).test(person));
+        } finally {
+            Locale.setDefault(original);
+        }
+    }
+
+    @Test
+    public void hashCode_equalKeywords_matches() {
+        NameContainsKeywordsPredicate first = new NameContainsKeywordsPredicate(List.of("alice", "bob"));
+        NameContainsKeywordsPredicate copy = new NameContainsKeywordsPredicate(List.of("alice", "bob"));
+        assertEquals(first, copy);
+        assertEquals(first.hashCode(), copy.hashCode());
+    }
+
 }

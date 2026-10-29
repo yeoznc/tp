@@ -6,15 +6,19 @@ import static seedu.address.logic.parser.ParserUtil.MESSAGE_INVALID_INDEX;
 import static seedu.address.testutil.Assert.assertThrows;
 import static seedu.address.testutil.TypicalIndexes.INDEX_FIRST_PERSON;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
+import seedu.address.commons.core.index.Index;
 import seedu.address.logic.parser.exceptions.ParseException;
 import seedu.address.model.person.Address;
 import seedu.address.model.person.CardDetails;
 import seedu.address.model.person.ClientReference;
+import seedu.address.model.person.CreditScore;
+import seedu.address.model.person.Debt;
 import seedu.address.model.person.Email;
 import seedu.address.model.person.Name;
 import seedu.address.model.person.Phone;
@@ -228,4 +232,74 @@ public class ParserUtilTest {
 
         assertEquals(expectedTagSet, actualTagSet);
     }
+    @Test
+    public void parseIndex_boundaries() throws Exception {
+        assertEquals(Index.fromOneBased(1), ParserUtil.parseIndex(" 1 "));
+        assertEquals(Index.fromOneBased(Integer.MAX_VALUE), ParserUtil.parseIndex("2147483647"));
+        for (String invalid : new String[] {"0", "-1", "+1", "2147483648", "1.0", "1 2", ""}) {
+            assertThrows(ParseException.class, ParserUtil.MESSAGE_INVALID_INDEX, ()
+                        -> ParserUtil.parseIndex(invalid));
+        }
+        assertThrows(NullPointerException.class, () -> ParserUtil.parseIndex(null));
+    }
+
+    @Test
+    public void parseFinancialValues_validPartitions_normalizesValues() throws Exception {
+        for (String valid : new String[] {"0", "1", "0001", "999999999999999999999999"}) {
+            assertEquals(new CreditScore(valid), ParserUtil.parseCreditScore(" " + valid + " "));
+        }
+        for (String valid : new String[] {"0", "0.00", "1.2", "1.23", "999999999999999999.99"}) {
+            assertEquals(new Debt(valid), ParserUtil.parseDebt(" " + valid + " "));
+        }
+    }
+
+    @Test
+    public void parseFinancialValues_invalidPartitions() {
+        assertThrows(NullPointerException.class, () -> ParserUtil.parseCreditScore(null));
+        assertThrows(NullPointerException.class, () -> ParserUtil.parseDebt(null));
+        for (String invalid : new String[] {"", " ", "-1", "+1", "1.0", "1e2", "a"}) {
+            assertThrows(ParseException.class, CreditScore.MESSAGE_CONSTRAINTS, ()
+                        -> ParserUtil.parseCreditScore(invalid));
+        }
+        for (String invalid : new String[] {"", " ", "-0.01", "+1", "1.234", ".1", "1.", "1e2"}) {
+            assertThrows(ParseException.class, Debt.MESSAGE_CONSTRAINTS, () -> ParserUtil.parseDebt(invalid));
+        }
+    }
+
+    @Test
+    public void parseCardFields_requiredTextAndNullPartitions() throws Exception {
+        assertEquals("0012  34", ParserUtil.parseCardNumber(" 0012  34 "));
+        assertEquals("001", ParserUtil.parseCvv(" 001 "));
+        assertEquals("Some Provider", ParserUtil.parseProvider(" Some Provider "));
+        assertThrows(NullPointerException.class, () -> ParserUtil.parseCardNumber(null));
+        assertThrows(NullPointerException.class, () -> ParserUtil.parseCvv(null));
+        assertThrows(NullPointerException.class, () -> ParserUtil.parseProvider(null));
+        for (String blank : new String[] {"", " ", "\t\n"}) {
+            assertThrows(ParseException.class, CardDetails.CARD_NUMBER_MESSAGE_CONSTRAINTS, ()
+                        -> ParserUtil.parseCardNumber(blank));
+            assertThrows(ParseException.class, CardDetails.CVV_MESSAGE_CONSTRAINTS, ()
+                        -> ParserUtil.parseCvv(blank));
+            assertThrows(ParseException.class, CardDetails.PROVIDER_MESSAGE_CONSTRAINTS, ()
+                        -> ParserUtil.parseProvider(blank));
+        }
+    }
+
+    @Test
+    public void parseExpiryDate_monthBoundaries() throws Exception {
+        for (String valid : new String[] {"01/00", "02/99", "11/28", "12/99"}) {
+            assertEquals(valid, ParserUtil.parseExpiryDate(" " + valid + " "));
+        }
+        for (String invalid : new String[] {"00/28", "13/28", "1/28", "01/2028", "01-28", ""}) {
+            assertThrows(ParseException.class, CardDetails.EXPIRY_DATE_MESSAGE_CONSTRAINTS, ()
+                        -> ParserUtil.parseExpiryDate(invalid));
+        }
+    }
+
+    @Test
+    public void parseTags_duplicatesAfterTrimming_collapsesToOneTag() throws Exception {
+        assertEquals(Set.of(new Tag("friend")), ParserUtil.parseTags(List.of("friend", " friend ")));
+        assertThrows(NullPointerException.class, () -> ParserUtil.parseTags(Arrays.asList("friend", null)));
+        assertThrows(NullPointerException.class, () -> ParserUtil.parseClientReference(null));
+    }
+
 }

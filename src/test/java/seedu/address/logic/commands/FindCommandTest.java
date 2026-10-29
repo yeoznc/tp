@@ -13,6 +13,7 @@ import static seedu.address.testutil.TypicalPersons.FIONA;
 import static seedu.address.testutil.TypicalPersons.getTypicalAddressBook;
 
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +23,9 @@ import seedu.address.model.AddressBook;
 import seedu.address.model.Model;
 import seedu.address.model.ModelManager;
 import seedu.address.model.UserPrefs;
+import seedu.address.model.person.ClientReference;
 import seedu.address.model.person.FindPersonPredicate;
+import seedu.address.model.person.Name;
 import seedu.address.model.person.Person;
 import seedu.address.model.person.Phone;
 import seedu.address.testutil.PersonBuilder;
@@ -194,4 +197,31 @@ public class FindCommandTest {
         assertCommandSuccess(command, model, expectedMessage, expectedModel);
         assertEquals(expectedPersons, model.getFilteredPersonList());
     }
+    @Test
+    public void execute_missingOptionalDetails_skipsOnlyWhenTheirFilterIsSupplied() throws Exception {
+        Person minimal = new Person(new ClientReference("C0001"), new Name("Alice"),
+                null, null, null, null, null, null, Set.of());
+        AddressBook book = new AddressBook();
+        book.addPerson(minimal);
+        model = new ModelManager(book, new UserPrefs());
+        expectedModel = new ModelManager(book, new UserPrefs());
+        assertSearchResult("n/ali", List.of(minimal));
+        assertSearchResult("n/ali p/123", List.of());
+        assertSearchResult("n/ali cn/123", List.of());
+        assertSearchResult("p/123 cn/123", List.of());
+        assertEquals(List.of(minimal), model.getAddressBook().getPersonList());
+        assertSearchResult("n/ali", List.of(minimal));
+    }
+
+    @Test
+    public void equalsAndHashCode_includeCardFilter() {
+        FindCommand first = new FindCommand(new FindPersonPredicate(List.of("Alice"), List.of(), "001"));
+        FindCommand copy = new FindCommand(new FindPersonPredicate(List.of("Alice"), List.of(), "001"));
+        assertEquals(first, copy);
+        assertEquals(first.hashCode(), copy.hashCode());
+        assertFalse(first.equals(new FindCommand(new FindPersonPredicate(List.of("Alice"), List.of(), "002"))));
+        assertFalse(first.equals(new FindCommand(new FindPersonPredicate(List.of("Alice"), List.of()))));
+        assertFalse(first.isDataChanging());
+    }
+
 }

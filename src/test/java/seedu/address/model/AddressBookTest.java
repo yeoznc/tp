@@ -18,6 +18,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import seedu.address.model.person.Person;
 import seedu.address.model.person.exceptions.DuplicatePersonException;
+import seedu.address.model.person.exceptions.PersonNotFoundException;
 import seedu.address.testutil.PersonBuilder;
 
 public class AddressBookTest {
@@ -101,6 +102,53 @@ public class AddressBookTest {
         public ObservableList<Person> getPersonList() {
             return persons;
         }
+    }
+
+    @Test
+    public void mutations_duplicateAndMissingTargets_preserveContents() {
+        Person first = new PersonBuilder(ALICE).withClientReference("C0001").build();
+        Person second = new PersonBuilder(ALICE).withClientReference("C0002").build();
+        AddressBook book = new AddressBook();
+        book.addPerson(first);
+        book.addPerson(second);
+        Person changed = new PersonBuilder(first).withName("Changed Name").build();
+        assertThrows(DuplicatePersonException.class, () -> book.addPerson(changed));
+        assertThrows(DuplicatePersonException.class, () -> book.setPerson(second, changed));
+        assertThrows(PersonNotFoundException.class, () -> book.removePerson(changed));
+        assertThrows(PersonNotFoundException.class, () -> book.setPerson(changed, first));
+        assertEquals(List.of(first, second), book.getPersonList());
+        book.setPerson(first, changed);
+        assertEquals(List.of(changed, second), book.getPersonList());
+        book.removePerson(second);
+        assertEquals(List.of(changed), book.getPersonList());
+        book.removePerson(changed);
+        assertTrue(book.getPersonList().isEmpty());
+    }
+
+    @Test
+    public void copyAndEquality_compareOrderedContentsWithoutSharingList() {
+        AddressBook book = new AddressBook();
+        book.addPerson(ALICE);
+        AddressBook copy = new AddressBook(book);
+        assertEquals(book, copy);
+        assertEquals(book.hashCode(), copy.hashCode());
+        assertFalse(book.equals(null));
+        assertFalse(book.equals(List.of(ALICE)));
+        book.removePerson(ALICE);
+        assertEquals(List.of(ALICE), copy.getPersonList());
+        assertFalse(book.equals(copy));
+    }
+
+    @Test
+    public void mutations_nullInputs_rejectWithoutMutation() {
+        AddressBook book = new AddressBook();
+        book.addPerson(ALICE);
+        assertThrows(NullPointerException.class, () -> book.addPerson(null));
+        assertThrows(NullPointerException.class, () -> book.removePerson(null));
+        assertThrows(NullPointerException.class, () -> book.setPerson(ALICE, null));
+        assertThrows(NullPointerException.class, () -> book.setPerson(null, ALICE));
+        assertThrows(NullPointerException.class, () -> book.setPersons(null));
+        assertEquals(List.of(ALICE), book.getPersonList());
     }
 
 }

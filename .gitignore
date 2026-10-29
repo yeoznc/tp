@@ -2,6 +2,7 @@
 /.gradle/
 /build/
 src/main/resources/docs/
+/alpha_test/
 
 # IDEA files
 src/.idea/

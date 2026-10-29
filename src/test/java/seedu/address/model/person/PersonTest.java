@@ -314,4 +314,17 @@ public class PersonTest {
                 + ", address=" + ALICE.getAddress().orElseThrow() + ", tags=" + ALICE.getTags() + "}";
         assertEquals(expected, ALICE.toString());
     }
+    @Test
+    public void constructor_copiesMutableTagSet() {
+        Set<Tag> tags = new HashSet<>(Set.of(new Tag("friend")));
+        Person person = new Person(new Name("Alice"), null, null, null, tags);
+        Person copy = new PersonBuilder(person).build();
+        int originalHash = person.hashCode();
+        tags.clear();
+        tags.add(new Tag("other"));
+        assertEquals(Set.of(new Tag("friend")), person.getTags());
+        assertEquals(copy, person);
+        assertEquals(originalHash, person.hashCode());
+    }
+
 }

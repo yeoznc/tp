@@ -1,5 +1,6 @@
 package seedu.address.model.person;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static seedu.address.testutil.Assert.assertThrows;
@@ -61,4 +62,25 @@ public class AddressTest {
         // different values -> returns false
         assertFalse(address.equals(new Address("Other Valid Address")));
     }
+    @Test
+    public void valueContracts_equalCopiesHaveSameHashAndPreserveText() {
+        Address value = new Address("Main Street");
+        Address copy = new Address("Main Street");
+        assertEquals(value, copy);
+        assertEquals(copy, value);
+        assertEquals(value.hashCode(), copy.hashCode());
+        assertEquals("Main Street", value.toString());
+    }
+
+    @Test
+    public void constructor_lengthAndPrintableCharacterBoundaries() {
+        for (int length : new int[] {1, 2, 199, 200}) {
+            assertEquals("A".repeat(length), new Address("A".repeat(length)).value);
+        }
+        assertEquals("\u6771\u4eac #01-02", new Address("\u6771\u4eac #01-02").value);
+        for (String invalid : new String[] {"", "A".repeat(201), "\u00a0 ", "A\rB", "A\u0000B"}) {
+            assertThrows(IllegalArgumentException.class, () -> new Address(invalid));
+        }
+    }
+
 }
